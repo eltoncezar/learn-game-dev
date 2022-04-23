@@ -1,0 +1,280 @@
+// title:  game title
+// author: game developer
+// desc:   short description
+// script: js
+// input: mouse
+
+// /home/eltoncezar/Projects/TIC-80/build/bin/tic80 /home/eltoncezar/.local/share/com.nesbox.tic/TIC-80/gift.js
+
+var t=0
+var globalSpeed=1
+var gameHeight=135
+var gameWidth=239
+
+var player=new Player()
+
+var pool={
+  stars:{},
+  asteroids:{}
+}
+
+pool.asteroids["1"]=new Asteroid(50,1,0.25,"1")
+
+function FPS() {
+	this.value=0
+	this.frames=0
+	this.lastTime=-1000
+	this.getValue=function() {
+		if (time()-this.lastTime <= 1000) {
+			this.frames = this.frames + 1
+		}
+		else {
+			this.value = this.frames
+			this.frames = 0
+			this.lastTime = time()
+		}
+		return this.value
+	}
+}
+
+const fps = new FPS()
+
+var asteroidDelay=1
+
+function TIC()
+{
+ cls(0)
+ if(globalSpeed>0){
+  CreateStars()
+  CreateAsteroids()
+ }
+ 
+ //UPDATE
+ for (var star in pool.stars){
+  pool.stars[star].update()
+ }
+ for(var asteroid in pool.asteroids){
+  pool.asteroids[asteroid].update()
+ }
+ player.update()
+ 
+ //DRAW
+ for (var star in pool.stars){
+  pool.stars[star].draw()
+ }
+ for(var asteroid in pool.asteroids){
+  pool.asteroids[asteroid].draw()
+ }
+ player.draw()
+ 
+ print("FPS: " + fps.getValue(), 200, 0, 11, false, 1, false)
+ //print(Object.keys(pool).length,0,0,15,false,1,true)
+	t++
+	
+	//print(t,0,0,15,false,1,true)
+	//print(time(),0,10,15,false,1,true)
+	//print(t%30,0,20,15,false,1,true)
+	//print((t%60)/30,0,30,15,false,1,true)
+	//print(((t%80)/30|0),0,40,15,false,1,true)
+	//print(1+((t%60)/30|0)*2,0,50,15,false,1,true)
+}
+
+//////////////////////////////////
+
+function GetRandomValue(min, max) {
+  return Math.random() * (max - min + 1) + min
+}
+
+function Collide(x1,y1,w1,h1,x2,y2,w2,h2) {
+  var hit=false
+  var xd=Math.abs((x1+(w1/2))-(x2+(w2/2)))
+  var xs=w1*0.5+w2*0.5
+  var yd=Math.abs((y1+(h1/2))-(y2+(h2/2)))
+  var ys=h1/2+h2/2
+
+  if((xd<xs)&&(yd<ys)) hit=true 
+  
+  return hit
+}
+
+//////////////////////////////////
+
+function CreateStars(){
+ var amount=GetRandomValue(0,1)
+ for(var i=0;i<amount;i++){
+  var index="star"+t+i
+  pool.stars[index]=
+   new Star(GetRandomValue(0,138),
+   GetRandomValue(1,4),
+   GetRandomValue(1,2),
+   GetRandomValue(12,15),
+   index)
+ }
+}
+
+function CreateAsteroids(){
+ asteroidDelay--
+ if(asteroidDelay==0){
+  CreateNormalAsteroids()
+  asteroidDelay=50
+ }
+}
+
+function CreateHugeAsteroids(){
+ var index="asteroid"+t
+  pool.asteroids[index]=
+   new Asteroid(GetRandomValue(0,106),
+    2,
+    4,
+    index)
+}
+
+function CreateNormalAsteroids(){
+  var index="asteroid"+t
+   pool.asteroids[index]=
+    new Asteroid(GetRandomValue(0,106),
+     1,
+     4,
+     index)
+ }
+
+function Player(){
+ this.x=42
+ this.y=68
+ this.height=7
+ this.width=16
+ var exploded=false
+ var frames=[19,3,4,20,4,3]
+ var explodedFrames=[8,9,10,9,10,11,12,13]
+ var currentFrame=0
+ var delay=4
+ 
+ this.draw=function(){
+  // if (exploded){
+  //  spr(explodedFrames[currentFrame],this.x+this.width/2,this.y+this.height/2,0,2)  
+
+  //  delay--
+  //  if(delay==0){
+  //   currentFrame++
+  //   if(currentFrame>frames.length-1)
+  //    currentFrame=0 
+  //   delay=8
+  //  }
+  // }
+  // else{
+   spr(1,this.x,this.y,0,1,0,0,2,2)
+  m
+   delay--
+   if(delay==0){
+    currentFrame++
+    if(currentFrame>frames.length-1)
+     currentFrame=0 
+    delay=4
+   }
+   spr(frames[currentFrame],this.x-this.width/2,this.y+3,0)
+  // } 
+ }
+
+ this.update=function(){
+  if(globalSpeed>0){
+   var pos=mouse()[1]
+   if(pos>gameHeight-Math.floor(this.height/2)||pos<Math.floor(this.height/2))return
+	  this.y=mouse()[1]-6
+	}
+  else{
+    exploded=true
+    // delay=8
+  }
+ }
+}
+
+function Star(y,speed,size,color,index){
+ this.x=240
+ this.y=y
+ 
+ this.draw=function(){
+  circ(this.x,this.y,size,color)
+ }
+ 
+ this.update=function(){
+  this.x-=speed*globalSpeed
+  if(this.x<0)
+   delete pool.stars[index]
+ }
+}
+
+function Asteroid(y,size,speed,index){
+ this.x=250
+ this.y=y
+ this.width=16
+ this.height=16
+ var rotation=0
+ var frames=[0,1,2,3]
+ var currentFrame=0
+ var delay=8
+ 
+ this.draw=function(){
+  spr(5,this.x,this.y,0,size,0,frames[currentFrame],2,2)
+ }
+ this.update=function(){
+  this.x-=(speed/2)*globalSpeed
+
+  if(globalSpeed>0){
+  var collided=Collide(
+    this.x,this.y,this.height,this.width,
+    player.x,player.y,player.width,player.height)
+  }
+
+  if(collided){
+    globalSpeed=0
+  }
+
+   if(this.x<-40)
+    delete pool.asteroids[index]
+   
+   delay--
+   if(delay==0){
+    currentFrame++
+    if(currentFrame>frames.length-1)
+     currentFrame=0
+   
+    delay=8
+   }
+ }
+}
+// <TILES>
+// 001:222200000222200000022200000dddddedddccccddcccccc222222ccddcccccc
+// 002:000000000000000000000000dccc0000cccccc00aaacccc0a9bcccccbbbcccc0
+// 003:0000000000000430000323330000322300043323000042300000000000000000
+// 004:0000000000004430004333234433222300343223000043300000000000000000
+// 005:0000000000000333000033220033222303322222322222223221223332222321
+// 006:3300000022300000223000002230000022220000222220002212233312222231
+// 007:0003330000322220032231223222112232222221321222210222121000011100
+// 008:0000000000000000000040000002340000422300000430000000000000000000
+// 009:0403004000433400033323003322433003244300043334004003004000000000
+// 010:4403304434333340333223333422423333242243032223300433434444033304
+// 011:0344444043322333432332344220022442200224422032344322223303444430
+// 012:0000300000030300300000033300003330000003000000030003300000330300
+// 013:0000200000020000000000000000002022000002200000000000200000000000
+// 017:edddcccc000ddddd000222000222200022220000000000000000000000000000
+// 018:cccccc00dccc0000000000000000000000000000000000000000000000000000
+// 019:0000000000000040000003430000003300000323000000400000000000000000
+// 020:0000000003333430004332234433222300442333333343300000000000000000
+// 021:3222312133223111322222110222222202233222002312220002221100002111
+// 022:1222222112231221222112112222221123222110222111102111110011110000
+// </TILES>
+
+// <WAVES>
+// 000:00000000ffffffff00000000ffffffff
+// 001:0123456789abcdeffedcba9876543210
+// 002:0123456789abcdef0123456789abcdef
+// </WAVES>
+
+// <SFX>
+// 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+// </SFX>
+
+// <PALETTE>
+// 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
+// </PALETTE>
+
